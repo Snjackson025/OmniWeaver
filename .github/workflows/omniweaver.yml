@@ -1,0 +1,58 @@
+name: OMNIWEAVER
+
+# Workflow for OMNIWEAVER (snjackson044-droid/OmniWeaver).
+# Compiles omniweaver.cpp and runs smoke tests on every push / PR to
+# main that touches the program, the check script, or this workflow.
+#
+# OMNIWEAVER is a C++ console program: the Universal AI Integration &
+# Orchestration Engine, with MathEngine, MemoryEngine, ObserverEngine,
+# and ArchiveEngine subsystems, message routing, broadcast, and the
+# "weave" multi-system workflow. See docs/WORKFLOW.md.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "omniweaver.cpp"
+      - "scripts/omniweaver-check.sh"
+      - ".github/workflows/omniweaver.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "omniweaver.cpp"
+      - "scripts/omniweaver-check.sh"
+      - ".github/workflows/omniweaver.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Compile
+        run: g++ -std=c++17 -Wall -Wextra -o omniweaver omniweaver.cpp
+
+      - name: Smoke test — start up, status, and shut down
+        run: |
+          output=$(printf 'status\nquit\n' | ./omniweaver)
+          echo "$output" | grep -q "OMNIWEAVER"
+          echo "$output" | grep -q "Version: 1.0.0"
+          echo "$output" | grep -q "Core: ONLINE"
+          echo "$output" | grep -q "Registered systems: 4"
+          echo "$output" | grep -q "OmniWeaver shutting down."
+
+      - name: Smoke test — MathEngine (5 multiply 10)
+        run: |
+          output=$(printf 'calc multiply 5 10\nquit\n' | ./omniweaver)
+          echo "$output" | grep -q "Calculation: 5 multiply 10 = 50"
+
+      - name: Smoke test — MemoryEngine (remember and recall)
+        run: |
+          output=$(printf 'remember test note\nrecall\nquit\n' | ./omniweaver)
+          echo "$output" | grep -q "MemoryEngine: Information stored successfully."
+          echo "$output" | grep -q "test note"
